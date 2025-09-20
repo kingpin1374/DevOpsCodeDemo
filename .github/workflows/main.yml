@@ -1,0 +1,43 @@
+name: CICD using Maven and Jenkins
+on:
+  push:    # fixed indentation, no value needed here
+  workflow_dispatch:
+
+jobs:
+  CICDJob:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the repo on ubuntu server
+        uses: actions/checkout@v3
+
+      - name: Install Java and Maven
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: 'maven'
+
+      - name: Build the source codes
+        run: mvn package
+
+      - name: Connect to my system and deploy to tomcat
+        uses: cross-the-world/ssh-scp-ssh-pipelines@v1.1.4
+        with:
+          # ssh remote host
+          host: '157.48.26.146'
+          # ssh remote port
+          port: '9090' # optional, default is 22
+          # ssh remote user
+          user: 'Aman'
+          pass: '1374' # optional
+          # connection timeout to remote host
+          connect_timeout: 10s # optional, default is 30s
+          # execute pre-commands before scp
+          first_ssh: |
+            sudo chmod 777 /var/lib/tomcat10/webapps
+          # scp from local to remote
+          scp: |
+            ./target/*.war:/var/lib/tomcat10/webapps
+          # execute post-commands after scp
+          last_ssh: |
+            sudo systemctl restart tomcat10
